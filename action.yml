@@ -1,0 +1,83 @@
+# MIT License
+
+# Copyright (c) 2024 Emanuele Giona
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+name: md-docs-action
+description: GitHub Action for building Markdown documentation and publishing to GitHub Pages
+author: Emanuele Giona
+inputs:
+  template-repo:
+    description: Documentation template to use, in the format username/repositoryname
+    required: false
+    default: "emanuelegiona/md-manual-template"
+  template-ver:
+    description: Documentation template version, as a valid reference (branch, tag, or SHA) within the selected repository
+    required: false
+    default: "v1.0.0"
+  token:
+    description: Personal access token (PAT) used to fetch the repository and publish to its gh-pages branch.
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout manual template
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.template-repo }}
+        ref: ${{ inputs.template-ver }}
+        submodules: recursive
+        fetch-depth: 0
+    - name: Cleanup unnecessary template files
+      run: rm -rf manual/images && rm manual/*.md && rm manual/metadata.yml
+      shell: bash
+    - name: Pandoc dependencies
+      run: sudo apt update && sudo apt install texlive texlive-latex-extra texlive-fonts-extra texlive-lang-german texlive-lang-english texlive-latex-recommended lmodern
+      shell: bash
+    - name: Pandoc installation
+      run: export PANDOC_VER=`wget -O - --max-redirect 0 https://github.com/jgm/pandoc/releases/latest 2>&1 | grep "Location:" | sed 's/.*\/tag\/\([^ "]*\).*/\1/'` && export PANDOC_DEB="pandoc-${PANDOC_VER}-1-amd64.deb" && wget "https://github.com/jgm/pandoc/releases/download/${PANDOC_VER}/${PANDOC_DEB}" && sudo dpkg -i "${PANDOC_DEB}" && rm "${PANDOC_DEB}"
+      shell: bash
+    - name: Pandoc version check
+      run: pandoc -v
+      shell: bash
+    - name: Checkout current docs
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+        path: tmp_repo
+    - name: Docs compilation
+      run: cp -a tmp_repo/manual/. manual/ && cd manual && make dist
+      shell: bash
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ inputs.token }}
+        publish_dir: ./manual/build
+        enable_jekyll: false
+        allow_empty_commit: false
+        force_orphan: true
+        publish_branch: gh-pages
+
+branding:
+  icon: "file-text"
+  color: "gray-dark"
