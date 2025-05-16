@@ -15,6 +15,7 @@ This GitHub Action aims at supporting drafting code documentation that is both v
 also applicable to user manuals written in Markdown.
 Based on [md-manual-template][templ-repo] by LibreSolar, this action simply adapts the original Travis-CI 
 workflow into a GitHub Action.
+The resulting documentation is then published to GitHub Pages via [peaceiris/actions-gh-pages][gha-pages].
 
 Documentation is built as static HTML and served through GitHub Pages from the `gh-pages` branch in the 
 same repository this workflow is executed from.
@@ -58,6 +59,8 @@ See below for optional inputs or see [action.yml](./action.yml) for default valu
 
     See [actions/checkout][gha-checkout] (parameter `repository`) for more details.
 
+    By default, it uses [emanuelegiona/md-manual-template][default-manual].
+
 - `template-ver` (_Optional_)
 
     Documentation template version, as a valid reference (branch, tag, or SHA) within the selected repository.
@@ -68,7 +71,23 @@ See below for optional inputs or see [action.yml](./action.yml) for default valu
 
     Personal access token (PAT) used to fetch the repository and publish to its gh-pages branch.
 
-    By default, it uses `GITHUB_TOKEN` from the invoking workflow; any token passed as argument should have write permissions on the repository.
+    By default, it uses `GITHUB_TOKEN` from the invoking workflow; any token passed as argument should have **write** permissions on the repository.
+
+- `prepare-script` (_Optional_)
+
+    Preparation script to be executed before compiling documentation, in the format of a filename.
+
+    The script should be in top level of the repository (same parent directory of the `manual` directory) and able to be executed directly; an exit value of `0` shall indicate a successful preparation, and any other exit value shall be interpreted as an error.
+
+    It may be used to replace relative URLs present in Markdown files with absolute ones for PDFs.
+
+    It must accept **at least 1** CLI argument, _i.e._ the root directory of documentation files; custom additional arguments may be passed via `prepare-args`.
+
+- `prepare-args` (_Optional_)
+
+    Arguments for the prepation script; this string will be passed as CLI argument to the preparation script and interpreted according to its internal semantics.
+
+    See `prepare-script` for more details.
 
 ## Example
 
@@ -111,6 +130,8 @@ This repository, scripts and snippets themselves are distributed under [MIT lice
 
 
 [templ-repo]: https://github.com/LibreSolar/md-manual-template
+[gha-pages]: https://github.com/peaceiris/actions-gh-pages
+[default-manual]: https://github.com/emanuelegiona/md-manual-template
 [gha-checkout]: https://github.com/actions/checkout
 [metadata-url]: https://github.com/emanuelegiona/md-manual-template/blob/master/manual/metadata.yml
 [license]: ./LICENSE

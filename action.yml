@@ -36,6 +36,14 @@ inputs:
     description: Personal access token (PAT) used to fetch the repository and publish to its gh-pages branch.
     required: false
     default: ${{ github.token }}
+  prepare-script:
+    description: Preparation script to be executed before compiling documentation, in the format of a filename.
+    required: false
+    default: ""
+  prepare-args:
+    description: Arguments for the prepation script; this string will be passed as CLI argument to the preparation script and interpreted according to its internal semantics.
+    required: false
+    default: ""
 
 runs:
   using: 'composite'
@@ -65,6 +73,12 @@ runs:
         submodules: recursive
         fetch-depth: 0
         path: tmp_repo
+    - name: Docs preparation (if any)
+      env:
+        INPUT_PREPARE_SCRIPT: ${{ inputs.prepare-script }}
+        INPUT_PREPARE_ARGS: ${{ inputs.prepare-args }}
+      run: ${{ github.action_path }}/prepare.sh tmp_repo
+      shell: bash
     - name: Docs compilation
       run: cp -a tmp_repo/manual/. manual/ && cd manual && make dist
       shell: bash
